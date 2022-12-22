@@ -23,7 +23,7 @@ async def readuntil(reader, separator):
 
 class HTTPMessage:
     def __init__(self, method, path, headers):
-        self.method = method
+        self.method = method.upper()
         self.path, self.query = self._process_path(path)
         self.headers = headers
 
@@ -59,8 +59,8 @@ async def read_message(reader):
     return proto_ver, HTTPMessage(method, path, headers)
 
 
-async def write_message(writer, status_code, status_text, headers, payload=None):
-    raw_message = (f"{HTTP_1_1} {status_code} {status_text}").encode() + NEWLINE
+async def write_message(writer, status_code, headers, payload=None):
+    raw_message = (f"{HTTP_1_1} {status_code}").encode() + NEWLINE
     for key, value in headers.items():
         raw_message += (key.encode() + b": " + value.encode() + NEWLINE)
     raw_message += NEWLINE
@@ -74,6 +74,8 @@ class HTTPServer:
     def __init__(self, host, port):
         self._host = host
         self._port = port
+        # {("/", "GET"): func, ... }
+        self._routes = {}
 
     async def _handle_conn(self, reader, writer):
         peer_name = writer.get_extra_info("peername")
@@ -82,11 +84,27 @@ class HTTPServer:
             _, message = await read_message(reader)
             print(message)
 
+            handler = self._routes.get((message.path, message.method))
+
+            if not handler:
+                await write_message(
+                    writer,
+                    404,
+                    {"Connection": "close", "Content-Length": "23"},
+                    b"<h1>Page Not Found</h1>",
+                )
+                return
+
+            status_code, headers, payload = handler(message)
+            payload_length = len(payload)
+            headers["Connection"] = "close"
+            headers["Content-Length"] = str(payload_length)
+
             await write_message(
                 writer,
-                200, "OK",
-                {"Connection": "close", "Content-Length": "20"},
-                b"<h1>Hello World</h1>",
+                status_code,
+                headers,
+                payload,
             )
 
         finally:
@@ -101,3 +119,10 @@ class HTTPServer:
             host=self._host,
             port=self._port,
         )
+
+    def route(self, path, method="GET"):
+        def decorator(fn):
+            # def wrapper(*args, **kw):
+            self._routes[(path, method.upper())] = fn
+            # return wrapper
+        return decorator
