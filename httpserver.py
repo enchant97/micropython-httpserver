@@ -89,9 +89,9 @@ class HTTPServer:
                 b"<h1>Hello World</h1>",
             )
 
+        finally:
             writer.close()
             await writer.wait_closed()
-        finally:
             print(f"conn closed from {peer_name}")
 
     async def start(self):
