@@ -4,6 +4,7 @@ except ImportError:
     import asyncio
 
 NEWLINE = b"\r\n"
+HTTP_1_1 = "HTTP/1.1"
 
 # Default values given by client
 DEFAULT_CLIENT_HEADERS = {
@@ -47,13 +48,14 @@ async def read_message(reader):
 
 
 async def write_message(writer, status_code, status_text, headers, payload=None):
-    raw_message = (f"HTTP/1.1 {status_code} {status_text}").encode() + NEWLINE
+    raw_message = (f"{HTTP_1_1} {status_code} {status_text}").encode() + NEWLINE
     for key, value in headers.items():
         raw_message += (key.encode() + b": " + value.encode() + NEWLINE)
     raw_message += NEWLINE
     if payload:
         raw_message += payload
-    await writer.write(raw_message)
+    writer.write(raw_message)
+    await writer.drain()
 
 
 class HTTPServer:
