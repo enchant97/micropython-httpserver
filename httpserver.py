@@ -24,11 +24,23 @@ async def readuntil(reader, separator):
 class HTTPMessage:
     def __init__(self, method, path, headers):
         self.method = method
-        self.path = path
+        self.path, self.query = self._process_path(path)
         self.headers = headers
 
+    @staticmethod
+    def _process_path(path):
+        query = {}
+        path_split = path.split("?")
+        if len(path_split) > 1:
+            path, query_string = path_split
+            query_string = query_string.split("&")
+            query_string = map(lambda v:v.split("="), query_string)
+            for key, value in query_string:
+                query[key] = value
+        return path, query
+
     def __repr__(self) -> str:
-        return f"{self.method} {self.path}\n{self.headers}"
+        return f"{self.method}\n{self.path} {self.query}\n{self.headers}"
 
 
 async def get_headers(reader):
