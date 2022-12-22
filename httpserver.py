@@ -23,8 +23,11 @@ async def readuntil(reader, separator):
 
 class HTTPMessage:
     def __init__(self, method, path, headers):
+        # "GET"
         self.method = method.upper()
+        # "/" {"name": "value", ...}
         self.path, self.query = self._process_path(path)
+        # {"name": "value", ...}
         self.headers = headers
 
     @staticmethod
@@ -122,7 +125,5 @@ class HTTPServer:
 
     def route(self, path, method="GET"):
         def decorator(fn):
-            # def wrapper(*args, **kw):
             self._routes[(path, method.upper())] = fn
-            # return wrapper
         return decorator
