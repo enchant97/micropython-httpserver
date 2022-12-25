@@ -67,8 +67,9 @@ class HTTPMessage:
 
     @property
     def form(self):
-        # FIXME this should raise an error if not correct Content-Type
-        return process_query_string(self.payload.decode())
+        if self.headers.get("Content-Type") == "application/x-www-form-urlencoded":
+            return process_query_string(self.payload.decode())
+        raise ValueError("not valid form")
 
     def __repr__(self) -> str:
         return f"{self.method}\n{self.path} {self.query}\n{self.headers}"
