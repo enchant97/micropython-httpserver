@@ -12,6 +12,21 @@ DEFAULT_CLIENT_HEADERS = {
     "Connection": "keep-alive",
 }
 
+METHOD_GET = "GET"
+METHOD_HEAD = "HEAD"
+METHOD_POST = "POST"
+METHOD_PUT = "PUT"
+METHOD_DELETE = "DELETE"
+METHOD_CONNECT = "CONNECT"
+METHOD_OPTIONS = "OPTIONS"
+METHOD_PATCH = "PATCH"
+METHODS = frozenset((
+    METHOD_GET, METHOD_HEAD,
+    METHOD_POST, METHOD_PUT,
+    METHOD_DELETE, METHOD_CONNECT,
+    METHOD_OPTIONS, METHOD_PATCH,
+))
+
 
 def perc_decode(v, from_form=False):
     decoded = b""
@@ -130,6 +145,9 @@ class HTTPServer:
                 if proto not in (HTTP_1_0, HTTP_1_1):
                     raise ValueError(f"invalid proto '{proto}' recived from {peer_name}")
 
+                if message.method not in METHODS:
+                    raise ValueError(f"invalid method '{message.method}' recived from {peer_name}")
+
                 # suport keep-alive and close connections
                 if message.headers["Connection"].lower() == "close" or proto == HTTP_1_0:
                     keep_alive = False
@@ -178,7 +196,7 @@ class HTTPServer:
             port=self._port,
         )
 
-    def route(self, path, method="GET"):
+    def route(self, path, method=METHOD_GET):
         def decorator(fn):
             self._routes[(path, method.upper())] = fn
         return decorator
