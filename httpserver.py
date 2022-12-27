@@ -75,22 +75,24 @@ class HTTPMessage:
         return f"{self.method}\n{self.path} {self.query}\n{self.headers}"
 
 
-async def get_headers(reader):
+async def read_headers(reader, timeout):
     headers = DEFAULT_CLIENT_HEADERS.copy()
-    while (line := await readuntil(reader, NEWLINE)) != NEWLINE:
+    while (line := await asyncio.wait_for(readuntil(reader, NEWLINE), timeout)) != NEWLINE:
         line = line.strip(NEWLINE).decode()
         sep_i = line.find(":")
         headers[line[0:sep_i]] = line[sep_i+2:]
     return headers
 
 
-async def read_message(reader):
-    start_line = (await readuntil(reader, NEWLINE)).strip(NEWLINE)
+async def read_message(reader, timeout, keep_alive_timeout):
+    start_line = await asyncio.wait_for(readuntil(reader, NEWLINE), keep_alive_timeout or timeout)
+    start_line = start_line.strip(NEWLINE)
     method, path, proto_ver = start_line.decode().split(" ")
-    headers = await get_headers(reader)
+    headers = await read_headers(reader, timeout)
     request_payload = None
     if (request_payload_length := int(headers.get("Content-Length", "0"))) != 0:
-        request_payload = await reader.readexactly(request_payload_length)
+        request_payload = await asyncio.wait_for(
+            reader.readexactly(request_payload_length), timeout)
     return proto_ver, HTTPMessage(method, path, headers, request_payload)
 
 
@@ -106,41 +108,55 @@ async def write_message(writer, status_code, headers, payload=None):
 
 
 class HTTPServer:
-    def __init__(self, host, port):
+    def __init__(self, host, port, timeout=5, keep_alive_timeout=25):
         self._host = host
         self._port = port
+        self._timeout = timeout
+        self._keep_alive_timeout = keep_alive_timeout
         # {("/", "GET"): func, ... }
         self._routes = {}
 
     async def _handle_conn(self, reader, writer):
+        keep_alive = True
         peer_name = writer.get_extra_info("peername")
         print(f"new conn from {peer_name}")
         try:
-            _, message = await read_message(reader)
-            print(message)
+            while keep_alive:
+                _, message = await read_message(reader, self._timeout, self._keep_alive_timeout)
+                print(message)
 
-            handler = self._routes.get((message.path, message.method))
+                # suport keep-alive and close connections
+                if message.headers["Connection"].lower() == "close":
+                    keep_alive = False
 
-            if not handler:
+                handler = self._routes.get((message.path, message.method))
+
+                if not handler:
+                    await write_message(
+                        writer,
+                        404,
+                        {
+                            "Connection": "keep-alive" if keep_alive else "close",
+                            "Content-Length": "23",
+                        },
+                        b"<h1>Page Not Found</h1>",
+                    )
+                    return
+
+                status_code, headers, payload = handler(message)
+                payload_length = len(payload)
+                headers["Connection"] = "keep-alive" if keep_alive else "close"
+                headers["Content-Length"] = str(payload_length)
+
                 await write_message(
                     writer,
-                    404,
-                    {"Connection": "close", "Content-Length": "23"},
-                    b"<h1>Page Not Found</h1>",
+                    status_code,
+                    headers,
+                    payload,
                 )
-                return
 
-            status_code, headers, payload = handler(message)
-            payload_length = len(payload)
-            headers["Connection"] = "close"
-            headers["Content-Length"] = str(payload_length)
-
-            await write_message(
-                writer,
-                status_code,
-                headers,
-                payload,
-            )
+        except asyncio.TimeoutError:
+            print(f"connection from {peer_name} timed out")
 
         finally:
             writer.close()
