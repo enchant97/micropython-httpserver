@@ -4,6 +4,7 @@ except ImportError:
     import asyncio
 
 NEWLINE = b"\r\n"
+HTTP_1_0 = "HTTP/1.0"
 HTTP_1_1 = "HTTP/1.1"
 
 # Default values given by client
@@ -96,8 +97,8 @@ async def read_message(reader, timeout, keep_alive_timeout):
     return proto_ver, HTTPMessage(method, path, headers, request_payload)
 
 
-async def write_message(writer, status_code, headers, payload=None):
-    raw_message = (f"{HTTP_1_1} {status_code}").encode() + NEWLINE
+async def write_message(writer, proto, status_code, headers, payload=None):
+    raw_message = (f"{proto} {status_code}").encode() + NEWLINE
     for key, value in headers.items():
         raw_message += (key.encode() + b": " + value.encode() + NEWLINE)
     raw_message += NEWLINE
@@ -122,11 +123,15 @@ class HTTPServer:
         print(f"new conn from {peer_name}")
         try:
             while keep_alive:
-                _, message = await read_message(reader, self._timeout, self._keep_alive_timeout)
+                proto, message = await read_message(reader, self._timeout, self._keep_alive_timeout)
                 print(message)
 
+                # validate proto version, we don't want something unexpected
+                if proto not in (HTTP_1_0, HTTP_1_1):
+                    raise ValueError(f"invalid proto '{proto}' recived from {peer_name}")
+
                 # suport keep-alive and close connections
-                if message.headers["Connection"].lower() == "close":
+                if message.headers["Connection"].lower() == "close" or proto == HTTP_1_0:
                     keep_alive = False
 
                 handler = self._routes.get((message.path, message.method))
@@ -134,6 +139,7 @@ class HTTPServer:
                 if not handler:
                     await write_message(
                         writer,
+                        proto,
                         404,
                         {
                             "Connection": "keep-alive" if keep_alive else "close",
@@ -150,6 +156,7 @@ class HTTPServer:
 
                 await write_message(
                     writer,
+                    proto,
                     status_code,
                     headers,
                     payload,
