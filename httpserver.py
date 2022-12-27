@@ -123,14 +123,40 @@ async def write_message(writer, proto, status_code, headers, payload=None):
     await writer.drain()
 
 
-class HTTPServer:
+class RouteGroup:
+    """
+    Handle registering routes and registering other route groups
+    """
+    def __init__(self, url_prefix = "/") -> None:
+        # {("/", "GET"): func, ... }
+        self.routes = {}
+        if not url_prefix.endswith("/"):
+            url_prefix = url_prefix + "/"
+        self._url_prefx = url_prefix
+
+    def route(self, path, method=METHOD_GET):
+        path = self._url_prefx + path.lstrip("/")
+        def decorator(fn):
+            self.routes[(path, method.upper())] = fn
+        return decorator
+
+    def get_route_handler(self, path, method):
+        return self.routes.get((path, method))
+
+    def register_route_group(self, group):
+        self.routes.update(group.routes)
+
+
+class HTTPServer(RouteGroup):
+    """
+    The HTTP/1.1 async server, with an internal RouteGroup
+    """
     def __init__(self, host, port, timeout=5, keep_alive_timeout=25):
+        super().__init__()
         self._host = host
         self._port = port
         self._timeout = timeout
         self._keep_alive_timeout = keep_alive_timeout
-        # {("/", "GET"): func, ... }
-        self._routes = {}
 
     async def _handle_conn(self, reader, writer):
         keep_alive = True
@@ -152,7 +178,7 @@ class HTTPServer:
                 if message.headers["Connection"].lower() == "close" or proto == HTTP_1_0:
                     keep_alive = False
 
-                handler = self._routes.get((message.path, message.method))
+                handler = self.get_route_handler(message.path, message.method)
 
                 if not handler:
                     await write_message(
@@ -195,8 +221,3 @@ class HTTPServer:
             host=self._host,
             port=self._port,
         )
-
-    def route(self, path, method=METHOD_GET):
-        def decorator(fn):
-            self._routes[(path, method.upper())] = fn
-        return decorator
