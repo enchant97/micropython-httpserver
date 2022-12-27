@@ -3,29 +3,9 @@ try:
 except ImportError:
     import asyncio
 
-NEWLINE = b"\r\n"
-HTTP_1_0 = "HTTP/1.0"
-HTTP_1_1 = "HTTP/1.1"
-
-# Default values given by client
-DEFAULT_CLIENT_HEADERS = {
-    "Connection": "keep-alive",
-}
-
-METHOD_GET = "GET"
-METHOD_HEAD = "HEAD"
-METHOD_POST = "POST"
-METHOD_PUT = "PUT"
-METHOD_DELETE = "DELETE"
-METHOD_CONNECT = "CONNECT"
-METHOD_OPTIONS = "OPTIONS"
-METHOD_PATCH = "PATCH"
-METHODS = frozenset((
-    METHOD_GET, METHOD_HEAD,
-    METHOD_POST, METHOD_PUT,
-    METHOD_DELETE, METHOD_CONNECT,
-    METHOD_OPTIONS, METHOD_PATCH,
-))
+from .constants import (DEFAULT_CLIENT_HEADERS, HTTP_1_0, HTTP_1_1, METHODS,
+                        NEWLINE)
+from .routing import RouteGroup
 
 
 def perc_decode(v, from_form=False):
@@ -121,30 +101,6 @@ async def write_message(writer, proto, status_code, headers, payload=None):
         raw_message += payload
     writer.write(raw_message)
     await writer.drain()
-
-
-class RouteGroup:
-    """
-    Handle registering routes and registering other route groups
-    """
-    def __init__(self, url_prefix = "/") -> None:
-        # {("/", "GET"): func, ... }
-        self.routes = {}
-        if not url_prefix.endswith("/"):
-            url_prefix = url_prefix + "/"
-        self._url_prefx = url_prefix
-
-    def route(self, path, method=METHOD_GET):
-        path = self._url_prefx + path.lstrip("/")
-        def decorator(fn):
-            self.routes[(path, method.upper())] = fn
-        return decorator
-
-    def get_route_handler(self, path, method):
-        return self.routes.get((path, method))
-
-    def register_route_group(self, group):
-        self.routes.update(group.routes)
 
 
 class HTTPServer(RouteGroup):
