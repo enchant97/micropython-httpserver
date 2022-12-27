@@ -88,7 +88,7 @@ async def read_headers(reader, timeout):
 async def read_message(reader, timeout, keep_alive_timeout):
     start_line = await asyncio.wait_for(readuntil(reader, NEWLINE), keep_alive_timeout or timeout)
     start_line = start_line.strip(NEWLINE)
-    method, path, proto_ver = start_line.decode().split(" ")
+    method, path, proto_ver = start_line.decode().split(" ", 3)
     headers = await read_headers(reader, timeout)
     request_payload = None
     if (request_payload_length := int(headers.get("Content-Length", "0"))) != 0:
