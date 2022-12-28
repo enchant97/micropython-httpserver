@@ -1,21 +1,22 @@
 from collections import namedtuple
 
 # (int, dict[str, str], bytes | None)
-HTTPResponse = namedtuple("HTTPResponse", ("status_code", "headers", "payload"))
+HTTPResponse = namedtuple("HTTPResponse", ("proto", "status_code", "headers", "payload"))
 
 
 class ResponseMaker:
-    def __init__(self, headers) -> None:
+    def __init__(self, proto, headers) -> None:
+        self._proto = proto
         # type: (dict[str, str]) -> (dict[str, str])
         self._headers = headers
 
     def no_content(self, status_code):
-        return HTTPResponse(status_code, self._headers, None)
+        return HTTPResponse(self._proto, status_code, self._headers, None)
 
     def content(self, status_code, content_type, content):
         self._headers.setdefault("Content-Type", content_type)
         self._headers["Content-Length"] = str(len(content))
-        return HTTPResponse(status_code, self._headers, content)
+        return HTTPResponse(self._proto, status_code, self._headers, content)
 
     def text(self, status_code, text):
         return self.content(status_code, "text/plain", text.encode())

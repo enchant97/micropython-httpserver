@@ -53,8 +53,8 @@ async def read_message(reader, timeout, keep_alive_timeout):
     return HTTPRequest(proto_ver, method, path, headers, request_payload)
 
 
-async def write_message(writer, proto, response):
-    raw_message = (f"{proto} {response.status_code}").encode() + NEWLINE
+async def write_message(writer, response):
+    raw_message = (f"{response.proto} {response.status_code}").encode() + NEWLINE
     for key, value in response.headers.items():
         raw_message += (key.encode() + b": " + value.encode() + NEWLINE)
     raw_message += NEWLINE

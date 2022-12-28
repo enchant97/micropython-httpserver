@@ -49,17 +49,20 @@ class HTTPServer(RouteGroup):
 
                 handler = self.get_route_handler(request.path, request.method)
 
-                response_maker = ResponseMaker({
-                    "Connection": "keep-alive" if keep_alive else "close",
-                })
+                response_maker = ResponseMaker(
+                    http_request.proto,
+                    {
+                        "Connection": "keep-alive" if keep_alive else "close",
+                    },
+                )
 
                 if not handler:
                     response = response_maker.html(404, "<h1>Page Not Found</h1>")
-                    await write_message(writer, http_request.proto, response)
+                    await write_message(writer, response)
                     return
 
                 response = handler(HandlerContext(request, response_maker))
-                await write_message(writer, http_request.proto, response)
+                await write_message(writer, response)
 
         except asyncio.TimeoutError:
             print(f"connection from {peer_name} timed out")
