@@ -1,3 +1,4 @@
+import json
 from collections import namedtuple
 
 # (int, dict[str, str], bytes | None)
@@ -23,6 +24,10 @@ class ResponseMaker:
 
     def html(self, status_code, html):
         return self.content(status_code, "text/html", html.encode())
+
+    def json(self, status_code, obj):
+        data = json.dumps(obj).encode()
+        return self.content(status_code, "application/json", data)
 
     def redirect(self, status_code, url):
         if status_code < 300 or status_code >= 400:

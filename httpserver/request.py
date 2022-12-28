@@ -1,3 +1,4 @@
+import json
 from collections import namedtuple
 
 HTTPRequest = namedtuple("HTTPRequest", ("proto", "method", "path", "headers", "payload"))
@@ -36,6 +37,13 @@ class Request:
         if self.headers.get("Content-Type") == "application/x-www-form-urlencoded":
             return process_query_string(self.payload.decode())
         raise ValueError("not valid form")
+
+    def json(self, force=False):
+        if (self.headers.get("Content-Type") == "application/json") or force:
+            if not self.payload:
+                return
+            return json.loads(self.payload.decode())
+        raise ValueError("not json content type")
 
     def __repr__(self) -> str:
         return f"{self.method}\n{self.path} {self.query}\n{self.headers}"
