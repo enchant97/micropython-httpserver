@@ -5,9 +5,10 @@ try:
 except ImportError:
     import asyncio
 
-from .constants import HTTP_1_0, HTTP_1_1, METHODS
-from .helpers import read_message, write_message
-from .request import Request
+from .constants import (DEFAULT_CLIENT_HEADERS, HTTP_1_0, HTTP_1_1, METHODS,
+                        NEWLINE)
+from .helpers import readuntil
+from .request import HTTPRequest, Request
 from .response import ResponseMaker
 from .routing import RouteGroup
 
@@ -25,13 +26,45 @@ class HTTPServer(RouteGroup):
         self._timeout = timeout
         self._keep_alive_timeout = keep_alive_timeout
 
+    async def _read_headers(self, reader):
+        headers = DEFAULT_CLIENT_HEADERS.copy()
+        while (line := await asyncio.wait_for(readuntil(reader, NEWLINE), self._timeout)) != NEWLINE:
+            line = line.strip(NEWLINE).decode()
+            sep_i = line.find(":")
+            headers[line[0:sep_i]] = line[sep_i+2:]
+        return headers
+
+    async def _read_message(self, reader):
+        start_line = await asyncio.wait_for(
+            readuntil(reader, NEWLINE),
+            self._keep_alive_timeout or self._timeout,
+        )
+        start_line = start_line.strip(NEWLINE).decode()
+        method, path, proto_ver = start_line.split(" ", 3)
+        headers = await self._read_headers(reader)
+        request_payload = None
+        if (request_payload_length := int(headers.get("Content-Length", "0"))) != 0:
+            request_payload = await asyncio.wait_for(
+                reader.readexactly(request_payload_length), self._timeout)
+        return HTTPRequest(proto_ver, method, path, headers, request_payload)
+
+    async def _write_message(self, writer, response):
+        raw_message = (f"{response.proto} {response.status_code}").encode() + NEWLINE
+        for key, value in response.headers.items():
+            raw_message += (key.encode() + b": " + value.encode() + NEWLINE)
+        raw_message += NEWLINE
+        if response.payload:
+            raw_message += response.payload
+        writer.write(raw_message)
+        await writer.drain()
+
     async def _handle_conn(self, reader, writer):
         keep_alive = True
         peer_name = writer.get_extra_info("peername")
         print(f"new conn from {peer_name}")
         try:
             while keep_alive:
-                http_request = await read_message(reader, self._timeout, self._keep_alive_timeout)
+                http_request = await self._read_message(reader)
                 print(http_request)
 
                 # validate proto version, we don't want something unexpected
@@ -58,11 +91,11 @@ class HTTPServer(RouteGroup):
 
                 if not handler:
                     response = response_maker.html(404, "<h1>Page Not Found</h1>")
-                    await write_message(writer, response)
+                    await self._write_message(writer, response)
                     return
 
                 response = handler(HandlerContext(request, response_maker))
-                await write_message(writer, response)
+                await self._write_message(writer, response)
 
         except asyncio.TimeoutError:
             print(f"connection from {peer_name} timed out")
