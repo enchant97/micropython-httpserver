@@ -4,6 +4,7 @@ except ImportError:
     import asyncio
 
 from .constants import DEFAULT_CLIENT_HEADERS, NEWLINE
+from .request import HTTPRequest
 
 
 def perc_decode(v, from_form=False):
@@ -31,44 +32,6 @@ async def readuntil(reader, separator):
     return buffer
 
 
-def process_query_string(query_string):
-    query = {}
-    query_string = query_string.split("&")
-    query_string = map(lambda v:v.split("="), query_string)
-    for key, value in query_string:
-        query[key] = value
-    return query
-
-
-class HTTPMessage:
-    def __init__(self, method, path, headers, payload):
-        # "GET"
-        self.method = method.upper()
-        # "/" {"name": "value", ...}
-        self.path, self.query = self._process_path(path)
-        # {"name": "value", ...}
-        self.headers = headers
-        self.payload = payload
-
-    @staticmethod
-    def _process_path(path):
-        query = {}
-        path_split = path.split("?")
-        if len(path_split) > 1:
-            path, query_string = path_split
-            query = process_query_string(query_string)
-        return path, query
-
-    @property
-    def form(self):
-        if self.headers.get("Content-Type") == "application/x-www-form-urlencoded":
-            return process_query_string(self.payload.decode())
-        raise ValueError("not valid form")
-
-    def __repr__(self) -> str:
-        return f"{self.method}\n{self.path} {self.query}\n{self.headers}"
-
-
 async def read_headers(reader, timeout):
     headers = DEFAULT_CLIENT_HEADERS.copy()
     while (line := await asyncio.wait_for(readuntil(reader, NEWLINE), timeout)) != NEWLINE:
@@ -87,7 +50,7 @@ async def read_message(reader, timeout, keep_alive_timeout):
     if (request_payload_length := int(headers.get("Content-Length", "0"))) != 0:
         request_payload = await asyncio.wait_for(
             reader.readexactly(request_payload_length), timeout)
-    return proto_ver, HTTPMessage(method, path, headers, request_payload)
+    return HTTPRequest(proto_ver, method, path, headers, request_payload)
 
 
 async def write_message(writer, proto, response):
