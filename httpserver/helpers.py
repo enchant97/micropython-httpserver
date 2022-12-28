@@ -90,12 +90,12 @@ async def read_message(reader, timeout, keep_alive_timeout):
     return proto_ver, HTTPMessage(method, path, headers, request_payload)
 
 
-async def write_message(writer, proto, status_code, headers, payload=None):
-    raw_message = (f"{proto} {status_code}").encode() + NEWLINE
-    for key, value in headers.items():
+async def write_message(writer, proto, response):
+    raw_message = (f"{proto} {response.status_code}").encode() + NEWLINE
+    for key, value in response.headers.items():
         raw_message += (key.encode() + b": " + value.encode() + NEWLINE)
     raw_message += NEWLINE
-    if payload:
-        raw_message += payload
+    if response.payload:
+        raw_message += response.payload
     writer.write(raw_message)
     await writer.drain()

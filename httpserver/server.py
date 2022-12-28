@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 try:
     import uasyncio as asyncio
 except ImportError:
@@ -5,7 +7,10 @@ except ImportError:
 
 from .constants import HTTP_1_0, HTTP_1_1, METHODS
 from .helpers import read_message, write_message
+from .response import ResponseMaker
 from .routing import RouteGroup
+
+HandlerContext = namedtuple("HandlerContext", ("request", "response"))
 
 
 class HTTPServer(RouteGroup):
@@ -41,31 +46,17 @@ class HTTPServer(RouteGroup):
 
                 handler = self.get_route_handler(message.path, message.method)
 
+                response_maker = ResponseMaker({
+                    "Connection": "keep-alive" if keep_alive else "close",
+                })
+
                 if not handler:
-                    await write_message(
-                        writer,
-                        proto,
-                        404,
-                        {
-                            "Connection": "keep-alive" if keep_alive else "close",
-                            "Content-Length": "23",
-                        },
-                        b"<h1>Page Not Found</h1>",
-                    )
+                    response = response_maker.html(404, "<h1>Page Not Found</h1>")
+                    await write_message(writer, proto, response)
                     return
 
-                status_code, headers, payload = handler(message)
-                payload_length = len(payload)
-                headers["Connection"] = "keep-alive" if keep_alive else "close"
-                headers["Content-Length"] = str(payload_length)
-
-                await write_message(
-                    writer,
-                    proto,
-                    status_code,
-                    headers,
-                    payload,
-                )
+                response = handler(HandlerContext(message, response_maker))
+                await write_message(writer, proto, response)
 
         except asyncio.TimeoutError:
             print(f"connection from {peer_name} timed out")

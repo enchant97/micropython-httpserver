@@ -9,18 +9,18 @@ server = HTTPServer("127.0.0.1", 8000)
 
 
 @server.route("/")
-def get_index(request):
-    return 200, {}, b"""<h1>Hello World!</h>
+def get_index(context):
+    return context.response.html(200, """<h1>Hello World!</h>
 <form action='/' method='POST'>
     <input name='name' placeholder='enter name here...'>
     <button>Submit</button>
-</form>"""
+</form>""")
 
 
 @server.route("/", "POST")
-def post_name(request):
-    form = request.form
-    return 200, {}, f"<h1>Hello {form['name']}!</h1>".encode()
+def post_name(context):
+    form = context.request.form
+    return context.response.html(200, f"<h1>Hello {form['name']}!</h1>")
 
 
 loop = asyncio.new_event_loop()
