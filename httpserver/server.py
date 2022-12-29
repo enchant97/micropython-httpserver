@@ -69,14 +69,14 @@ class HTTPServer(RouteGroup):
 
                 # validate proto version, we don't want something unexpected
                 if http_request.proto not in (HTTP_1_0, HTTP_1_1):
-                    raise ValueError(f"invalid proto '{http_request.proto}' recived from {peer_name}")
+                    raise ValueError(f"invalid proto '{http_request.proto}' received from {peer_name}")
 
                 if http_request.method not in METHODS:
-                    raise ValueError(f"invalid method '{http_request.method}' recived from {peer_name}")
+                    raise ValueError(f"invalid method '{http_request.method}' received from {peer_name}")
 
                 request = Request(http_request)
 
-                # suport keep-alive and close connections
+                # support keep-alive and close connections
                 if request.headers["Connection"].lower() == "close" or http_request.proto == HTTP_1_0:
                     keep_alive = False
 

@@ -10,10 +10,10 @@ class RouteGroup:
         self.routes = {}
         if not url_prefix.endswith("/"):
             url_prefix = url_prefix + "/"
-        self._url_prefx = url_prefix
+        self._url_prefix = url_prefix
 
     def route(self, path, method=METHOD_GET):
-        path = self._url_prefx + path.lstrip("/")
+        path = self._url_prefix + path.lstrip("/")
         def decorator(fn):
             self.routes[(path, method.upper())] = fn
         return decorator
