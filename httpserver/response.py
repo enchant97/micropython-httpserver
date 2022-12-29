@@ -11,11 +11,17 @@ class ResponseMaker:
         # type: (dict[str, str]) -> (dict[str, str])
         self._headers = headers
 
+    def get_header(self, key):
+        return self._headers.get(key)
+
+    def set_header(self, key, value):
+        self._headers[key] = value
+
     def no_content(self, status_code):
         return HTTPResponse(self._proto, status_code, self._headers, None)
 
     def content(self, status_code, content_type, content):
-        self._headers.setdefault("Content-Type", content_type)
+        self._headers["Content-Type"] = content_type
         self._headers["Content-Length"] = str(len(content))
         return HTTPResponse(self._proto, status_code, self._headers, content)
 
