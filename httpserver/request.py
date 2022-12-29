@@ -17,7 +17,6 @@ class Request:
         self.headers = http_request.headers
         self.payload = http_request.payload
 
-    @property
     def form(self):
         if self.headers.get("Content-Type") == "application/x-www-form-urlencoded":
             return process_query_string(self.payload.decode())

@@ -19,7 +19,7 @@ def get_index(context):
 
 @server.route("/", "POST")
 def post_name(context):
-    form = context.request.form
+    form = context.request.form()
     return context.response.html(200, f"<h1>Hello {form['name']}!</h1>")
 
 
