@@ -1,25 +1,10 @@
 import json
 from collections import namedtuple
 
+from .helpers import process_path, process_query_string
+
+
 HTTPRequest = namedtuple("HTTPRequest", ("proto", "method", "path", "headers", "payload"))
-
-
-def process_query_string(query_string):
-    query = {}
-    query_string = query_string.split("&")
-    query_string = map(lambda v:v.split("="), query_string)
-    for key, value in query_string:
-        query[key] = value
-    return query
-
-
-def process_path(path):
-    query = {}
-    path_split = path.split("?")
-    if len(path_split) > 1:
-        path, query_string = path_split
-        query = process_query_string(query_string)
-    return path, query
 
 
 class Request:
