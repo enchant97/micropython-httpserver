@@ -2,11 +2,6 @@ NEWLINE = b"\r\n"
 HTTP_1_0 = "HTTP/1.0"
 HTTP_1_1 = "HTTP/1.1"
 
-# Default values given by client
-DEFAULT_CLIENT_HEADERS = {
-    "Connection": "keep-alive",
-}
-
 METHOD_GET = "GET"
 METHOD_HEAD = "HEAD"
 METHOD_POST = "POST"

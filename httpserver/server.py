@@ -5,8 +5,7 @@ try:
 except ImportError:
     import asyncio
 
-from .constants import (DEFAULT_CLIENT_HEADERS, HTTP_1_0, HTTP_1_1, METHODS,
-                        NEWLINE)
+from .constants import HTTP_1_0, HTTP_1_1, METHODS, NEWLINE
 from .helpers import readuntil
 from .request import HTTPRequest, Request
 from .response import ResponseMaker
@@ -26,8 +25,16 @@ class HTTPServer(RouteGroup):
         self._timeout = timeout
         self._keep_alive_timeout = keep_alive_timeout
 
-    async def _read_headers(self, reader):
-        headers = DEFAULT_CLIENT_HEADERS.copy()
+    async def _read_headers(self, reader, proto_ver):
+        headers = {}
+
+        # set default connection header based on protocol version
+        # may be overridden by client headers later
+        if proto_ver == HTTP_1_0:
+            headers["Connection"] = "close"
+        else:
+            headers["Connection"] = "keep-alive"
+
         while (line := await asyncio.wait_for(readuntil(reader, NEWLINE), self._timeout)) != NEWLINE:
             line = line.strip(NEWLINE).decode()
             sep_i = line.find(":")
@@ -41,7 +48,7 @@ class HTTPServer(RouteGroup):
         )
         start_line = start_line.strip(NEWLINE).decode()
         method, path, proto_ver = start_line.split(" ", 3)
-        headers = await self._read_headers(reader)
+        headers = await self._read_headers(reader, proto_ver)
         request_payload = None
         if (request_payload_length := int(headers.get("Content-Length", "0"))) != 0:
             request_payload = await asyncio.wait_for(
@@ -77,7 +84,7 @@ class HTTPServer(RouteGroup):
                 request = Request(http_request)
 
                 # support keep-alive and close connections
-                if request.headers["Connection"].lower() == "close" or http_request.proto == HTTP_1_0:
+                if request.headers["Connection"].lower() == "close":
                     keep_alive = False
 
                 handler = self.get_route_handler(request.path, request.method)
