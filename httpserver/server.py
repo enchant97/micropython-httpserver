@@ -57,6 +57,8 @@ class HTTPServer(RouteGroup):
             self._keep_alive_timeout or self._timeout,
         )
         start_line = start_line.strip(NEWLINE).decode()
+        if len(start_line) == 0:
+            return None
         method, path, proto_ver = start_line.split(" ", 3)
         headers = await self._read_headers(reader, proto_ver)
         request_payload = None
@@ -93,6 +95,13 @@ class HTTPServer(RouteGroup):
         try:
             while keep_alive:
                 http_request = await self._read_message(reader)
+                if not http_request:
+                    if keep_alive:
+                        # handle client signaling
+                        # keep-alive end
+                        break
+                    else:
+                        raise ValueError("message empty")
                 print(http_request)
 
                 # validate proto version, we don't want something unexpected
