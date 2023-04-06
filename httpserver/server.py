@@ -18,12 +18,22 @@ class HTTPServer(RouteGroup):
     """
     The HTTP/1.1 async server, with an internal RouteGroup
     """
-    def __init__(self, host, port, timeout=5, keep_alive_timeout=25):
+    def __init__(
+            self,
+            host="127.0.0.1",
+            port=8000,
+            timeout=5,
+            keep_alive_timeout=25,
+            request_handler=Request,
+            response_maker=ResponseMaker,
+        ):
         super().__init__()
         self._host = host
         self._port = port
         self._timeout = timeout
         self._keep_alive_timeout = keep_alive_timeout
+        self._request_handler = request_handler
+        self._response_maker = response_maker
 
     async def _read_headers(self, reader, proto_ver):
         headers = {}
@@ -92,7 +102,7 @@ class HTTPServer(RouteGroup):
                 if http_request.method not in METHODS:
                     raise ValueError(f"invalid method '{http_request.method}' received from {peer_name}")
 
-                request = Request(http_request)
+                request = self._request_handler(http_request)
 
                 # support keep-alive and close connections
                 if request.headers["Connection"].lower() == "close":
@@ -100,7 +110,7 @@ class HTTPServer(RouteGroup):
 
                 handler = self.get_route_handler(request.path, request.method)
 
-                response_maker = ResponseMaker(
+                response_maker = self._response_maker(
                     http_request.proto,
                     {
                         "Connection": "keep-alive" if keep_alive else "close",
