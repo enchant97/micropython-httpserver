@@ -1,8 +1,30 @@
 import json
 from collections import namedtuple
 
-# (int, dict[str, str], bytes | None)
+from .constants import NEWLINE, HTTP_1_1
+
+# (int, dict[str, str], bytes | ResponseStream | None)
 HTTPResponse = namedtuple("HTTPResponse", ("proto", "status_code", "headers", "payload"))
+
+
+def create_chunk(data):
+    return (
+        format(len(data), "x").encode("ascii") +
+        NEWLINE +
+        data +
+        NEWLINE
+    )
+
+
+class ResponseStream:
+    def __init__(self, stream) -> None:
+        self._stream = stream
+
+    def read(self):
+        for chunk in self._stream:
+            yield create_chunk(chunk)
+        # EOF
+        yield create_chunk(b"")
 
 
 class ResponseMaker:
@@ -24,6 +46,13 @@ class ResponseMaker:
         self._headers["Content-Type"] = content_type
         self._headers["Content-Length"] = str(len(content))
         return HTTPResponse(self._proto, status_code, self._headers, content)
+
+    def content_stream(self, status_code, content_type, stream):
+        if self._proto != HTTP_1_1:
+            raise ValueError("client does not support 'chunked' encoding")
+        self._headers["Content-Type"] = content_type
+        self._headers["Transfer-Encoding"] = "chunked"
+        return HTTPResponse(self._proto, status_code, self._headers, stream)
 
     def text(self, status_code, text):
         return self.content(status_code, "text/plain", text.encode())

@@ -1,9 +1,12 @@
+from time import sleep
+
 try:
     import uasyncio as asyncio
 except ImportError:
     import asyncio
 
 from httpserver import HTTPServer
+from httpserver.response import ResponseStream
 
 server = HTTPServer("127.0.0.1", 8000)
 
@@ -15,6 +18,16 @@ def get_index(context):
     <input name='name' placeholder='enter name here...'>
     <button>Submit</button>
 </form>""")
+
+
+@server.route("/stream")
+def get_stream(context):
+    def my_stream():
+        for i in range(100):
+            yield "Hello '{0}'\n".format(i).encode()
+            sleep(.01)
+    response = ResponseStream(my_stream())
+    return context.response.content_stream(200, "text/plain", response)
 
 
 @server.route("/", "POST")

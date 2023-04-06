@@ -8,7 +8,7 @@ except ImportError:
 from .constants import HTTP_1_0, HTTP_1_1, METHODS, NEWLINE
 from .helpers import readuntil
 from .request import HTTPRequest, Request
-from .response import ResponseMaker
+from .response import ResponseMaker, ResponseStream
 from .routing import RouteGroup
 
 HandlerContext = namedtuple("HandlerContext", ("request", "response"))
@@ -60,8 +60,19 @@ class HTTPServer(RouteGroup):
         for key, value in response.headers.items():
             raw_message += (key.encode() + b": " + value.encode() + NEWLINE)
         raw_message += NEWLINE
-        if response.payload:
+
+        if isinstance(response.payload, ResponseStream):
+            # chunked payload
+            writer.write(raw_message)
+            await writer.drain()
+            for chunk in response.payload.read():
+                writer.write(chunk)
+                await writer.drain()
+            return
+        elif response.payload:
+            # normal payload
             raw_message += response.payload
+
         writer.write(raw_message)
         await writer.drain()
 
