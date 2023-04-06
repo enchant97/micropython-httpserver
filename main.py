@@ -26,8 +26,12 @@ def get_stream(context):
         for i in range(100):
             yield "Hello '{0}'\n".format(i).encode()
             sleep(.01)
-    response = ResponseStream(my_stream())
-    return context.response.content_stream(200, "text/plain", response)
+    return context.response.content_stream(200, "text/plain", my_stream())
+
+
+@server.route("/LICENSE.txt")
+def get_file(context):
+    return context.response.file("LICENSE.txt")
 
 
 @server.route("/", "POST")

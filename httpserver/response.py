@@ -52,6 +52,8 @@ class ResponseMaker:
             raise ValueError("client does not support 'chunked' encoding")
         self._headers["Content-Type"] = content_type
         self._headers["Transfer-Encoding"] = "chunked"
+        if not isinstance(stream, ResponseStream):
+            stream = ResponseStream(stream)
         return HTTPResponse(self._proto, status_code, self._headers, stream)
 
     def text(self, status_code, text):
@@ -63,6 +65,13 @@ class ResponseMaker:
     def json(self, status_code, obj):
         data = json.dumps(obj).encode()
         return self.content(status_code, "application/json", data)
+
+    def file(self, path, content_type="application/octet-stream"):
+        def stream():
+            with open(path, "rb") as fo:
+                for chunk in fo:
+                    yield chunk
+        return self.content_stream(200, content_type, stream())
 
     def redirect(self, status_code, url):
         if status_code < 300 or status_code >= 400:
