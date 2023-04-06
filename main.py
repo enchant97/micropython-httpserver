@@ -6,14 +6,13 @@ except ImportError:
     import asyncio
 
 from httpserver import HTTPServer
-from httpserver.response import ResponseStream
 
 server = HTTPServer("127.0.0.1", 8000)
 
 
 @server.route("/")
-def get_index(context):
-    return context.response.html(200, """<h1>Hello World!</h>
+def get_index(ctx):
+    return ctx.response.html(200, """<h1>Hello World!</h>
 <form action='/' method='POST'>
     <input name='name' placeholder='enter name here...'>
     <button>Submit</button>
@@ -21,34 +20,34 @@ def get_index(context):
 
 
 @server.route("/stream")
-def get_stream(context):
+def get_stream(ctx):
     def my_stream():
         for i in range(100):
             yield "Hello '{0}'\n".format(i).encode()
             sleep(.01)
-    return context.response.content_stream(200, "text/plain", my_stream())
+    return ctx.response.content_stream(200, "text/plain", my_stream())
 
 
 @server.route("/LICENSE.txt")
-def get_file(context):
-    return context.response.file("LICENSE.txt")
+def get_file(ctx):
+    return ctx.response.file("LICENSE.txt")
 
 
 @server.route("/", "POST")
-def post_name(context):
-    form = context.request.form()
-    return context.response.html(200, f"<h1>Hello {form['name']}!</h1>")
+def post_name(ctx):
+    form = ctx.request.form()
+    return ctx.response.html(200, f"<h1>Hello {form['name']}!</h1>")
 
 
 @server.route("/api")
-def get_api_index(context):
-    return context.response.json(200, {"message": "Hello World!"})
+def get_api_index(ctx):
+    return ctx.response.json(200, {"message": "Hello World!"})
 
 
 @server.route("/api", "POST")
-def post_api_name(context):
-    form = context.request.json()
-    return context.response.json(200, {"message": f"Hello {form['name']}!"})
+def post_api_name(ctx):
+    form = ctx.request.json()
+    return ctx.response.json(200, {"message": f"Hello {form['name']}!"})
 
 
 loop = asyncio.new_event_loop()
