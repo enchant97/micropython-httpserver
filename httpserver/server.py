@@ -88,6 +88,14 @@ class HTTPServer(RouteGroup):
         writer.write(raw_message)
         await writer.drain()
 
+    def build_response_maker(self, proto, keep_alive):
+        return self._response_maker(
+            proto,
+            {
+                "Connection": "keep-alive" if keep_alive else "close",
+            },
+        )
+
     async def _handle_conn(self, reader, writer):
         keep_alive = True
         peer_name = writer.get_extra_info("peername")
@@ -117,22 +125,30 @@ class HTTPServer(RouteGroup):
                 if request.headers["Connection"].lower() == "close":
                     keep_alive = False
 
+                # get route handler function, if one exists
                 handler = self.get_route_handler(request.path, request.method)
 
-                response_maker = self._response_maker(
-                    http_request.proto,
-                    {
-                        "Connection": "keep-alive" if keep_alive else "close",
-                    },
-                )
-
+                # check if a handler is actually registered
                 if not handler:
-                    response = response_maker.html(404, "<h1>Page Not Found</h1>")
+                    response = self.build_response_maker(
+                        http_request.proto,
+                        keep_alive
+                    ).html(404, "<h1>Page Not Found</h1>")
                     await self._write_message(writer, response)
                     return
 
-                response = handler(HandlerContext(request, response_maker))
-                await self._write_message(writer, response)
+                # run handler, construct response
+                # and handle if handler raises an exception and handle it
+                try:
+                    response_maker = self.build_response_maker(http_request.proto, keep_alive)
+                    response = handler(HandlerContext(request, response_maker))
+                except Exception as err:
+                    response_maker = self.build_response_maker(http_request.proto, keep_alive)
+                    response = response_maker.html(500, "<h1>Internal Server Error</h1>")
+                    await self._write_message(writer, response)
+                    raise err
+                else:
+                    await self._write_message(writer, response)
 
         except asyncio.TimeoutError:
             print(f"connection from {peer_name} timed out")
