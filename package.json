@@ -1,0 +1,13 @@
+{
+    "urls": [
+        ["httpserver/__init__.py", "github.com:enchant97/micropython-httpserver/__init__.py"],
+        ["httpserver/constants.py", "github.com:enchant97/micropython-httpserver/constants.py"],
+        ["httpserver/helpers.py", "github.com:enchant97/micropython-httpserver/helpers.py"],
+        ["httpserver/request.py", "github.com:enchant97/micropython-httpserver/request.py"],
+        ["httpserver/response.py", "github.com:enchant97/micropython-httpserver/response.py"],
+        ["httpserver/routing.py", "github.com:enchant97/micropython-httpserver/routing.py"],
+        ["httpserver/server.py", "github.com:enchant97/micropython-httpserver/server.py"]
+    ],
+    "deps": [],
+    "version": "0.0.0"
+}
