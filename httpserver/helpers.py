@@ -28,7 +28,7 @@ def process_query_string(query_string):
     query_string = query_string.split("&")
     query_string = map(lambda v:v.split("="), query_string)
     for key, value in query_string:
-        query[key] = value
+        query[key] = perc_decode(value, True)
     return query
 
 
