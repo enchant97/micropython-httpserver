@@ -7,12 +7,15 @@ except ImportError:
 
 from httpserver import HTTPServer
 
-server = HTTPServer("127.0.0.1", 8000)
+server = HTTPServer("127.0.0.1", 8000, globals={
+    "message": "Hello World!",
+})
 
 
 @server.route("/")
 def get_index(ctx):
-    return ctx.response.html(200, """<h1>Hello World!</h>
+    message = ctx.globals["message"]
+    return ctx.response.html(200, f"""<h1>{message}</h>
 <form action='/' method='POST'>
     <input name='name' placeholder='enter name here...'>
     <button>Submit</button>
