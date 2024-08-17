@@ -3,7 +3,7 @@ from time import sleep
 
 from httpserver import HTTPServer
 
-server = HTTPServer("127.0.0.1", 8000, globals={
+server = HTTPServer(globals={
     "message": "Hello World!",
 })
 
@@ -51,7 +51,7 @@ def post_api_name(ctx):
 
 loop = asyncio.new_event_loop()
 try:
-    loop.run_until_complete(server.start())
+    loop.run_until_complete(server.start("127.0.0.1", 8000))
     loop.run_forever()
 except KeyboardInterrupt:
     loop.run_until_complete(server.stop())

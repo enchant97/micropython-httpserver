@@ -6,7 +6,7 @@ import asyncio
 
 from httpserver import HTTPServer
 
-app = HTTPServer("0.0.0.0", 80)
+app = HTTPServer()
 
 
 @app.route("/")
@@ -17,7 +17,7 @@ def get_index(context):
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     try:
-        loop.run_until_complete(app.start())
+        loop.run_until_complete(app.start("0.0.0.0", 80))
         loop.run_forever()
     except KeyboardInterrupt:
         loop.run_until_complete(app.stop())
