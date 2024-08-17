@@ -54,6 +54,6 @@ try:
     loop.run_until_complete(server.start())
     loop.run_forever()
 except KeyboardInterrupt:
-    server._server.close()
+    loop.run_until_complete(server.stop())
 finally:
     loop.close()

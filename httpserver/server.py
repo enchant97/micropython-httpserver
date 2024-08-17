@@ -25,6 +25,7 @@ class HTTPServer(RouteGroup):
             globals={},
         ):
         super().__init__()
+        self._server = None
         self._host = host
         self._port = port
         self._timeout = timeout
@@ -158,9 +159,19 @@ class HTTPServer(RouteGroup):
             print(f"conn closed from {peer_name}")
 
     async def start(self):
+        if self._server is not None:
+            raise Exception("server already running")
+
         print(f"listening on: {self._host}:{self._port}")
         self._server = await asyncio.start_server(
             self._handle_conn,
             host=self._host,
             port=self._port,
         )
+
+    async def stop(self):
+        if self._server is None:
+            raise Exception("server not running")
+
+        self._server.close()
+        await self._server.wait_closed()

@@ -20,8 +20,7 @@ if __name__ == "__main__":
         loop.run_until_complete(app.start())
         loop.run_forever()
     except KeyboardInterrupt:
-        pass
+        loop.run_until_complete(app.stop())
     finally:
-        app._server.close()
         loop.close()
 ```
