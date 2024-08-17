@@ -7,7 +7,6 @@ server = HTTPServer(globals={
     "message": "Hello World!",
 })
 
-
 @server.route("/")
 def get_index(ctx):
     message = ctx.globals["message"]

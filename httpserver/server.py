@@ -20,7 +20,7 @@ class HTTPServer(RouteGroup):
             keep_alive_timeout=25,
             request_handler=Request,
             response_maker=ResponseMaker,
-            globals={},
+            globals=None,
         ):
         super().__init__()
         self._server = None
@@ -28,7 +28,11 @@ class HTTPServer(RouteGroup):
         self._keep_alive_timeout = keep_alive_timeout
         self._request_handler = request_handler
         self._response_maker = response_maker
-        self._globals = globals
+
+        if globals is not None:
+            self.globals = globals
+        else:
+            self.globals = {}
 
     async def _read_headers(self, reader, proto_ver):
         headers = OrderedDict()
@@ -137,7 +141,7 @@ class HTTPServer(RouteGroup):
                 # and handle if handler raises an exception and handle it
                 try:
                     response_maker = self.build_response_maker(http_request.proto, keep_alive)
-                    response = handler(HandlerContext(request, response_maker, self._globals))
+                    response = handler(HandlerContext(request, response_maker, self.globals))
                 except Exception as err:
                     response_maker = self.build_response_maker(http_request.proto, keep_alive)
                     response = response_maker.html(500, "<h1>Internal Server Error</h1>")
