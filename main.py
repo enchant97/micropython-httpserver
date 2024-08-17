@@ -1,9 +1,5 @@
+import asyncio
 from time import sleep
-
-try:
-    import uasyncio as asyncio
-except ImportError:
-    import asyncio
 
 from httpserver import HTTPServer
 

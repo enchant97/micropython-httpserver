@@ -2,7 +2,7 @@
 ## Minimal App
 
 ```python
-import uasyncio as asyncio
+import asyncio
 
 from httpserver import HTTPServer
 

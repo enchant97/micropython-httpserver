@@ -1,9 +1,5 @@
+import asyncio
 from collections import namedtuple
-
-try:
-    import uasyncio as asyncio
-except ImportError:
-    import asyncio
 
 from .constants import HTTP_1_0, HTTP_1_1, METHODS, NEWLINE
 from .helpers import readuntil

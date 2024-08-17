@@ -16,7 +16,8 @@ Read the docs [here](docs/index.md) for more info.
 
 ## Limitations
 - Only has internal http server, does not support WSGI/ASGI
-- Must use asyncio/uasyncio
+- Must use asyncio
+- MicroPython => 1.23
 
 ## Works On
 - Raspberry Pi Pico W
