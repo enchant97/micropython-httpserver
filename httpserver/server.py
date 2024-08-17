@@ -1,5 +1,5 @@
 import asyncio
-from collections import namedtuple
+from collections import OrderedDict, namedtuple
 
 from .constants import HTTP_1_0, HTTP_1_1, METHODS, NEWLINE
 from .helpers import readuntil
@@ -34,7 +34,7 @@ class HTTPServer(RouteGroup):
         self._globals = globals
 
     async def _read_headers(self, reader, proto_ver):
-        headers = {}
+        headers = OrderedDict()
 
         # set default connection header based on protocol version
         # may be overridden by client headers later
@@ -47,6 +47,7 @@ class HTTPServer(RouteGroup):
             line = line.strip(NEWLINE).decode()
             sep_i = line.find(":")
             headers[line[0:sep_i]] = line[sep_i+2:]
+
         return headers
 
     async def _read_message(self, reader):
@@ -120,7 +121,7 @@ class HTTPServer(RouteGroup):
                 request = self._request_handler(http_request)
 
                 # support keep-alive and close connections
-                if request.headers["Connection"].lower() == "close":
+                if request.headers["Connection"] == "close":
                     keep_alive = False
 
                 # get route handler function, if one exists
