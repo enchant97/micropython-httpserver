@@ -1,3 +1,6 @@
+from collections import OrderedDict
+
+
 async def readuntil(reader, separator):
     buffer = b""
     while (char := await reader.read(1)):
@@ -24,7 +27,7 @@ def perc_decode(v, from_form=False):
 
 
 def process_query_string(query_string):
-    query = {}
+    query = OrderedDict()
     query_string = query_string.split("&")
     query_string = map(lambda v:v.split("="), query_string)
     for key, value in query_string:
@@ -32,10 +35,12 @@ def process_query_string(query_string):
     return query
 
 
-def process_path(path):
-    query = {}
+def seperate_path_and_query(path):
     path_split = path.split("?")
+    query = None
     if len(path_split) > 1:
         path, query_string = path_split
         query = process_query_string(query_string)
+    else:
+        query = OrderedDict()
     return path, query

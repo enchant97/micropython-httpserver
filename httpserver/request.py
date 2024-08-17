@@ -1,7 +1,7 @@
 import json
 from collections import namedtuple
 
-from .helpers import process_path, process_query_string
+from .helpers import seperate_path_and_query, process_query_string
 
 
 HTTPRequest = namedtuple("HTTPRequest", ("proto", "method", "path", "headers", "payload"))
@@ -12,7 +12,7 @@ class Request:
         # "GET"
         self.method = http_request.method.upper()
         # "/" {"name": "value", ...}
-        self.path, self.query = process_path(http_request.path)
+        self.path, self.query = seperate_path_and_query(http_request.path)
         # {"name": "value", ...}
         self.headers = http_request.headers
         self.payload = http_request.payload

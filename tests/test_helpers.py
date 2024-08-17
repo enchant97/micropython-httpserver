@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from unittest import TestCase
 
 from httpserver import helpers
@@ -22,8 +23,8 @@ class TestPercentDecode(TestCase):
 class TestProcessQueryString(TestCase):
     def test_valid(self):
         test_values = (
-            ("name=Leo", {"name": "Leo"}),
-            ("name=Leo&admin=1", {"name": "Leo", "admin": "1"}),
+            ("name=Leo", OrderedDict([("name", b"Leo")])),
+            ("name=Leo&admin=1", OrderedDict([("name", b"Leo"), ("admin", b"1")])),
         )
         for query_string, expected in test_values:
             with self.subTest(query_string=query_string, expected=expected):
@@ -31,13 +32,13 @@ class TestProcessQueryString(TestCase):
                 self.assertEqual(expected, actual)
 
 
-class TestProcessPath(TestCase):
+class TestSeperatePathAndQueries(TestCase):
     def test_valid(self):
         test_values = (
-            ("/?name=Leo", ("/", {"name": "Leo"})),
-            ("/hello-world?name=Leo&admin=1", ("/hello-world", {"name": "Leo", "admin": "1"})),
+            ("/?name=Leo", ("/", OrderedDict([("name", b"Leo")]))),
+            ("/hello-world?name=Leo&admin=1", ("/hello-world", OrderedDict([("name", b"Leo"), ("admin", b"1")]))),
         )
         for path, expected in test_values:
             with self.subTest(path=path, expected=expected):
-                actual = helpers.process_path(path)
+                actual = helpers.seperate_path_and_query(path)
                 self.assertEqual(expected, actual)
