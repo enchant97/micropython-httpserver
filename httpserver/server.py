@@ -167,7 +167,11 @@ class HTTPServer(RouteGroup):
         if self._server is not None:
             raise Exception("server already running")
 
-        print(f"listening on: {host}:{port}")
+        if ssl is None:
+            print(f"listening on: http://{host}:{port}")
+        else:
+            print(f"listening on: https://{host}:{port}")
+
         self._server = await asyncio.start_server(
             self._handle_conn,
             host=host,
