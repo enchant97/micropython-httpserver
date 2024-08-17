@@ -29,6 +29,8 @@ def perc_decode(v, from_form=False):
 def process_query_string(query_string):
     query = OrderedDict()
     query_string = query_string.split("&")
+    if len(query_string) == 1 and query_string[0] == "":
+        return query
     query_string = map(lambda v:v.split("="), query_string)
     for key, value in query_string:
         query[key] = perc_decode(value, True)

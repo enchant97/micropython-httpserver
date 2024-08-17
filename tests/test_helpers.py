@@ -23,6 +23,7 @@ class TestPercentDecode(TestCase):
 class TestProcessQueryString(TestCase):
     def test_valid(self):
         test_values = (
+            ("q=", OrderedDict([("q", b"")])),
             ("name=Leo", OrderedDict([("name", b"Leo")])),
             ("name=Leo&admin=1", OrderedDict([("name", b"Leo"), ("admin", b"1")])),
         )
@@ -35,6 +36,9 @@ class TestProcessQueryString(TestCase):
 class TestSeperatePathAndQueries(TestCase):
     def test_valid(self):
         test_values = (
+            ("/", ("/", OrderedDict([]))),
+            ("/?", ("/", OrderedDict([]))),
+            ("/?q=", ("/", OrderedDict([("q", b"")]))),
             ("/?name=Leo", ("/", OrderedDict([("name", b"Leo")]))),
             ("/hello-world?name=Leo&admin=1", ("/hello-world", OrderedDict([("name", b"Leo"), ("admin", b"1")]))),
         )
