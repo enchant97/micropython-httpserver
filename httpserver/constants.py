@@ -6,18 +6,19 @@ except ImportError:
         return v
 
 
-NEWLINE = b"\r\n"
-HTTP_1_0 = "HTTP/1.0"
-HTTP_1_1 = "HTTP/1.1"
+NEWLINE = const(b"\r\n")
+HTTP_1_0 = const("HTTP/1.0")
+HTTP_1_1 = const("HTTP/1.1")
 
-METHOD_GET = "GET"
-METHOD_HEAD = "HEAD"
-METHOD_POST = "POST"
-METHOD_PUT = "PUT"
-METHOD_DELETE = "DELETE"
-METHOD_CONNECT = "CONNECT"
-METHOD_OPTIONS = "OPTIONS"
-METHOD_PATCH = "PATCH"
+# START METHODS
+METHOD_GET = const("GET")
+METHOD_HEAD = const("HEAD")
+METHOD_POST = const("POST")
+METHOD_PUT = const("PUT")
+METHOD_DELETE = const("DELETE")
+METHOD_CONNECT = const("CONNECT")
+METHOD_OPTIONS = const("OPTIONS")
+METHOD_PATCH = const("PATCH")
 METHODS = frozenset(
     (
         METHOD_GET,
@@ -30,6 +31,7 @@ METHODS = frozenset(
         METHOD_PATCH,
     )
 )
+# END METHODS
 
 # START STATUS CODES
 STATUS_CONTINUE_100 = const(100)
