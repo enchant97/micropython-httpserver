@@ -1,7 +1,7 @@
 import asyncio
 from collections import OrderedDict, namedtuple
 
-from .constants import HTTP_1_0, HTTP_1_1, METHODS, NEWLINE
+from .constants import HTTP_1_0, HTTP_1_1, METHODS, NEWLINE, STATUS_INTERNAL_SERVER_ERROR_500, STATUS_NOT_FOUND_404
 from .helpers import readuntil
 from .request import HTTPRequest, Request
 from .response import ResponseMaker, ResponseStream
@@ -133,7 +133,7 @@ class HTTPServer(RouteGroup):
                     response = self.build_response_maker(
                         http_request.proto,
                         keep_alive
-                    ).html(404, "<h1>Page Not Found</h1>")
+                    ).html(STATUS_NOT_FOUND_404, "<h1>Page Not Found</h1>")
                     await self._write_message(writer, response)
                     return
 
@@ -144,7 +144,10 @@ class HTTPServer(RouteGroup):
                     response = handler(HandlerContext(request, response_maker, self.globals))
                 except Exception as err:
                     response_maker = self.build_response_maker(http_request.proto, keep_alive)
-                    response = response_maker.html(500, "<h1>Internal Server Error</h1>")
+                    response = response_maker.html(
+                            STATUS_INTERNAL_SERVER_ERROR_500,
+                            "<h1>Internal Server Error</h1>",
+                    )
                     await self._write_message(writer, response)
                     raise err
                 else:

@@ -5,13 +5,14 @@
 import asyncio
 
 from httpserver import HTTPServer
+from httpserver.constants import STATUS_OK_200
 
 app = HTTPServer()
 
 
 @app.route("/")
 def get_index(context):
-    return context.response.html(200, "<h1>Hello World!</h1>")
+    return context.response.html(STATUS_OK_200, "<h1>Hello World!</h1>")
 
 
 if __name__ == "__main__":

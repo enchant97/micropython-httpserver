@@ -1,19 +1,16 @@
 import json
 from collections import namedtuple
 
-from .constants import NEWLINE, HTTP_1_1
+from .constants import NEWLINE, HTTP_1_1, STATUS_OK_200
 
 # (int, dict[str, str], bytes | ResponseStream | None)
-HTTPResponse = namedtuple("HTTPResponse", ("proto", "status_code", "headers", "payload"))
+HTTPResponse = namedtuple(
+    "HTTPResponse", ("proto", "status_code", "headers", "payload")
+)
 
 
 def create_chunk(data):
-    return (
-        format(len(data), "x").encode("ascii") +
-        NEWLINE +
-        data +
-        NEWLINE
-    )
+    return format(len(data), "x").encode("ascii") + NEWLINE + data + NEWLINE
 
 
 class ResponseStream:
@@ -71,7 +68,8 @@ class ResponseMaker:
             with open(path, "rb") as fo:
                 for chunk in fo:
                     yield chunk
-        return self.content_stream(200, content_type, stream())
+
+        return self.content_stream(STATUS_OK_200, content_type, stream())
 
     def redirect(self, status_code, url):
         if status_code < 300 or status_code >= 400:
