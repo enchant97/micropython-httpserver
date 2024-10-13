@@ -1,7 +1,16 @@
 import asyncio
 from collections import OrderedDict, namedtuple
 
-from .constants import HTTP_1_0, HTTP_1_1, METHODS, NEWLINE, STATUS_INTERNAL_SERVER_ERROR_500, STATUS_NOT_FOUND_404
+from .constants import (
+    HTTP_1_0,
+    HTTP_1_1,
+    METHODS,
+    NEWLINE,
+    STATUS_HTTP_VERSION_NOT_SUPPORTED_505,
+    STATUS_INTERNAL_SERVER_ERROR_500,
+    STATUS_NOT_FOUND_404,
+    STATUS_NOT_IMPLEMENTED_501,
+)
 from .helpers import readuntil
 from .request import HTTPRequest, Request
 from .response import ResponseMaker, ResponseStream
@@ -14,14 +23,15 @@ class HTTPServer(RouteGroup):
     """
     The HTTP/1.1 async server, with an internal RouteGroup
     """
+
     def __init__(
-            self,
-            timeout=5,
-            keep_alive_timeout=25,
-            request_handler=Request,
-            response_maker=ResponseMaker,
-            globals=None,
-        ):
+        self,
+        timeout=5,
+        keep_alive_timeout=25,
+        request_handler=Request,
+        response_maker=ResponseMaker,
+        globals=None,
+    ):
         super().__init__()
         self._server = None
         self._timeout = timeout
@@ -44,10 +54,12 @@ class HTTPServer(RouteGroup):
         else:
             headers["Connection"] = "keep-alive"
 
-        while (line := await asyncio.wait_for(readuntil(reader, NEWLINE), self._timeout)) != NEWLINE:
+        while (
+            line := await asyncio.wait_for(readuntil(reader, NEWLINE), self._timeout)
+        ) != NEWLINE:
             line = line.strip(NEWLINE).decode()
             sep_i = line.find(":")
-            headers[line[0:sep_i]] = line[sep_i+2:]
+            headers[line[0:sep_i]] = line[sep_i + 2 :]
 
         return headers
 
@@ -64,13 +76,14 @@ class HTTPServer(RouteGroup):
         request_payload = None
         if (request_payload_length := int(headers.get("Content-Length", "0"))) != 0:
             request_payload = await asyncio.wait_for(
-                reader.readexactly(request_payload_length), self._timeout)
+                reader.readexactly(request_payload_length), self._timeout
+            )
         return HTTPRequest(proto_ver, method, path, headers, request_payload)
 
     async def _write_message(self, writer, response):
         raw_message = (f"{response.proto} {response.status_code}").encode() + NEWLINE
         for key, value in response.headers.items():
-            raw_message += (key.encode() + b": " + value.encode() + NEWLINE)
+            raw_message += key.encode() + b": " + value.encode() + NEWLINE
         raw_message += NEWLINE
 
         if isinstance(response.payload, ResponseStream):
@@ -112,13 +125,31 @@ class HTTPServer(RouteGroup):
                         raise ValueError("message empty")
                 print(http_request)
 
-                # validate proto version, we don't want something unexpected
+                # validate given http protocol version
                 if http_request.proto not in (HTTP_1_0, HTTP_1_1):
-                    raise ValueError(f"invalid proto '{http_request.proto}' received from {peer_name}")
+                    print(
+                        f"invalid proto '{http_request.proto}' received from {peer_name}"
+                    )
+                    response = self.build_response_maker(HTTP_1_1, keep_alive).html(
+                        STATUS_HTTP_VERSION_NOT_SUPPORTED_505,
+                        "<h1>Version Not Supported</h1><p>Supported versions are: HTTP/1.0 or HTTP/1.1.</p>",
+                    )
+                    await self._write_message(writer, response)
+                    return
 
+                # validate given http method
                 if http_request.method not in METHODS:
-                    raise ValueError(f"invalid method '{http_request.method}' received from {peer_name}")
+                    print(
+                        f"invalid method '{http_request.method}' received from {peer_name}"
+                    )
+                    response = self.build_response_maker(HTTP_1_1, keep_alive).html(
+                        STATUS_NOT_IMPLEMENTED_501,
+                        f"<h1>Not Implemented</h1><p>The method '{http_request.method}' is not supported.</p>",
+                    )
+                    await self._write_message(writer, response)
+                    return
 
+                # Convert raw http request into a request object
                 request = self._request_handler(http_request)
 
                 # support keep-alive and close connections
@@ -131,8 +162,7 @@ class HTTPServer(RouteGroup):
                 # check if a handler is actually registered
                 if not handler:
                     response = self.build_response_maker(
-                        http_request.proto,
-                        keep_alive
+                        http_request.proto, keep_alive
                     ).html(STATUS_NOT_FOUND_404, "<h1>Page Not Found</h1>")
                     await self._write_message(writer, response)
                     return
@@ -140,13 +170,19 @@ class HTTPServer(RouteGroup):
                 # run handler, construct response
                 # and handle if handler raises an exception and handle it
                 try:
-                    response_maker = self.build_response_maker(http_request.proto, keep_alive)
-                    response = handler(HandlerContext(request, response_maker, self.globals))
+                    response_maker = self.build_response_maker(
+                        http_request.proto, keep_alive
+                    )
+                    response = handler(
+                        HandlerContext(request, response_maker, self.globals)
+                    )
                 except Exception as err:
-                    response_maker = self.build_response_maker(http_request.proto, keep_alive)
+                    response_maker = self.build_response_maker(
+                        http_request.proto, keep_alive
+                    )
                     response = response_maker.html(
-                            STATUS_INTERNAL_SERVER_ERROR_500,
-                            "<h1>Internal Server Error</h1>",
+                        STATUS_INTERNAL_SERVER_ERROR_500,
+                        "<h1>Internal Server Error</h1>",
                     )
                     await self._write_message(writer, response)
                     raise err
@@ -166,7 +202,7 @@ class HTTPServer(RouteGroup):
         host="127.0.0.1",
         port=8000,
         ssl=None,
-        ):
+    ):
         if self._server is not None:
             raise Exception("server already running")
 
